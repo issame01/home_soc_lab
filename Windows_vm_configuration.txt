@@ -1,0 +1,398 @@
+# Why We Chose Bridged Networking Instead of NAT for Our SOC Lab
+
+## Introduction
+
+In our SOC lab environment, we use a Windows virtual machine hosted on a Kali Linux machine using QEMU/KVM virtualization. The purpose of this Windows machine is to simulate a real enterprise endpoint that can be attacked, monitored, and analyzed through a SIEM solution powered by Wazuh running on a DigitalOcean droplet.
+
+One important architectural decision in virtualization is the network mode used by the virtual machine. Initially, NAT networking was considered because it is simple and works out of the box. However, for a realistic SOC environment, bridged networking is more appropriate.
+
+This article explains:
+
+* the difference between NAT and bridged networking,
+* how both networking modes work internally,
+* why bridged networking better fits a SOC lab,
+* and what was configured on the Linux host to support bridge networking in QEMU.
+
+---
+
+# Understanding NAT Networking
+
+## What Is NAT Networking?
+
+NAT stands for Network Address Translation.
+
+When using NAT mode, the virtual machine does not appear directly on the local network. Instead, the hypervisor creates a private internal network and acts as a router between the VM and the outside world.
+
+In QEMU, NAT networking is commonly configured using:
+
+```bash
+-netdev user,id=net0
+```
+
+This creates a virtual internal network managed entirely by QEMU.
+
+---
+
+# How NAT Works Internally
+
+With NAT networking, the topology looks like this:
+
+```text
+Windows VM
+    |
+QEMU Virtual NAT Router
+    |
+Kali Linux Host
+    |
+Wi-Fi Router
+    |
+Internet
+```
+
+The VM receives an internal IP address from QEMU, usually something similar to:
+
+```text
+10.0.2.x
+```
+
+When the VM sends traffic:
+
+1. packets go to the QEMU virtual router,
+2. QEMU translates the source address,
+3. the host machine forwards traffic to the real network.
+
+This is very similar to:
+
+* home routers,
+* Docker networking,
+* VirtualBox NAT mode.
+
+---
+
+# Advantages of NAT Networking
+
+NAT provides several benefits:
+
+## Simplicity
+
+No advanced networking configuration is required.
+
+## Stability
+
+NAT works reliably on both Ethernet and Wi-Fi connections.
+
+## Isolation
+
+The VM is hidden behind the host machine and is not directly visible on the LAN.
+
+## Security
+
+The vulnerable Windows machine cannot accidentally expose services directly to the local network.
+
+---
+
+# Limitations of NAT in a SOC Lab
+
+Although NAT is convenient, it has limitations for realistic attack simulations.
+
+## The VM Does Not Behave Like a Real Endpoint
+
+The VM becomes hidden behind the host’s network stack. Other devices on the LAN cannot directly discover it.
+
+## Limited Layer-2 Visibility
+
+Protocols relying on broadcast or local network discovery may not behave naturally.
+
+## Port Forwarding Is Required
+
+To access services such as:
+
+* RDP,
+* SMB,
+* WinRM,
+
+manual port forwarding must be configured.
+
+## Reduced Realism
+
+Enterprise SOC environments monitor endpoints that exist as independent devices on the network. NAT abstracts the VM behind the host, reducing realism.
+
+---
+
+# Understanding Bridged Networking
+
+## What Is Bridged Networking?
+
+Bridged networking allows the VM to appear as a real device on the local network.
+
+Instead of hiding behind the host:
+
+* the VM gets its own MAC address,
+* the VM gets its own IP address from the router,
+* the VM communicates directly with other devices.
+
+The topology becomes:
+
+```text
+Router / LAN
+     |
++------------+
+|            |
+Kali Host   Windows VM
+```
+
+In this configuration:
+
+* the router sees the VM as a separate machine,
+* the VM behaves like a physical endpoint,
+* network scans can discover the VM naturally.
+
+---
+
+# Why Bridged Networking Is Better for a SOC Lab
+
+Our SOC lab focuses on:
+
+* attack simulation,
+* endpoint monitoring,
+* realistic detection engineering,
+* SIEM telemetry collection.
+
+Bridged networking supports these goals more effectively.
+
+---
+
+# Realistic Attack Surface
+
+The Windows VM behaves exactly like a normal machine on the network.
+
+This enables realistic:
+
+* Nmap scanning,
+* SMB enumeration,
+* RDP attacks,
+* lateral movement simulations,
+* Windows discovery traffic.
+
+---
+
+# Independent Network Identity
+
+The VM receives:
+
+* its own IP address,
+* its own MAC address,
+* its own DHCP lease.
+
+This mimics how endpoints behave in real enterprise environments.
+
+---
+
+# Better Visibility for Security Monitoring
+
+Since the endpoint communicates independently:
+
+* network logs become more realistic,
+* Sysmon telemetry becomes more meaningful,
+* Wazuh can correlate activity more accurately.
+
+---
+
+# More Accurate SOC Simulations
+
+Enterprise SOC teams monitor real endpoints, not NAT-isolated systems.
+
+Bridged networking helps simulate:
+
+* workstation compromise,
+* internal reconnaissance,
+* network discovery,
+* lateral movement,
+* suspicious authentication attempts.
+
+---
+
+# Linux Bridge Architecture
+
+To implement bridge networking in QEMU/KVM, Linux uses a software bridge.
+
+The bridge acts like a virtual network switch.
+
+The architecture looks like this:
+
+```text
+             br0 (Linux bridge)
+              /            \
+     Physical NIC         TAP Interface
+                               |
+                            Windows VM
+```
+
+---
+
+# What Is a TAP Interface?
+
+A TAP interface is a virtual Ethernet adapter used by virtual machines.
+
+QEMU connects the VM to the TAP interface, and the Linux bridge forwards traffic between:
+
+* the physical network,
+* and the VM.
+
+This allows the VM to behave like a physical device connected to the switch.
+
+---
+
+# Packages Installed
+
+To support bridge networking with QEMU, the following packages were installed:
+
+```bash
+sudo apt install qemu-system bridge-utils qemu-utils
+```
+
+## bridge-utils
+
+Provides Linux bridge management utilities.
+
+## qemu-system
+
+Provides QEMU virtualization binaries.
+
+## qemu-utils
+
+Provides QEMU networking and storage utilities.
+
+---
+
+# QEMU Bridge Helper
+
+The QEMU bridge helper was configured to allow non-root users to attach virtual machines to Linux bridges securely.
+
+The helper binary exists at:
+
+```text
+/usr/lib/qemu/qemu-bridge-helper
+```
+
+A bridge configuration file was created:
+
+```text
+/etc/qemu/bridge.conf
+```
+
+Its content:
+
+```text
+allow all
+```
+
+This permits QEMU to use Linux bridges.
+
+Permissions were configured with:
+
+```bash
+sudo chmod 644 /etc/qemu/bridge.conf
+sudo chmod u+s /usr/lib/qemu/qemu-bridge-helper
+```
+
+---
+
+# Creating the Linux Bridge
+
+A Linux bridge named `br0` was created using:
+
+```bash
+sudo ip link add name br0 type bridge
+sudo ip link set br0 up
+```
+
+This bridge acts as the virtual switch connecting virtual machines to the network.
+
+---
+
+# NAT vs Bridged Networking Comparison
+
+| Feature                         | NAT      | Bridged               |
+| ------------------------------- | -------- | --------------------- |
+| VM visible on LAN               | No       | Yes                   |
+| VM gets real LAN IP             | No       | Yes                   |
+| Requires port forwarding        | Yes      | No                    |
+| Works easily on Wi-Fi           | Yes      | Sometimes problematic |
+| Isolation                       | High     | Lower                 |
+| Realistic enterprise simulation | Limited  | Excellent             |
+| Suitable for SOC labs           | Moderate | Best choice           |
+| Network discovery realism       | Limited  | Full                  |
+| SMB/RDP realism                 | Partial  | Full                  |
+
+---
+
+# Challenges of Bridged Networking on Wi-Fi
+
+One challenge encountered is that Linux Wi-Fi adapters often do not fully support layer-2 bridging.
+
+Unlike Ethernet:
+
+* Wi-Fi adapters usually expect only one MAC address,
+* bridged VMs introduce additional MAC addresses,
+* some wireless drivers reject these frames.
+
+Because of this:
+
+* DHCP may fail,
+* connectivity may become unstable,
+* or the VM may not appear properly on the LAN.
+
+Despite these limitations, bridged networking remains the preferred architecture for realistic SOC simulations whenever supported by the hardware and drivers.
+
+---
+
+# Final Architecture of the SOC Lab
+
+The final SOC lab architecture consists of:
+
+## Kali Linux Host
+
+Used as the attacker machine.
+
+## Windows 10 VM
+
+Configured with:
+
+* Sysmon,
+* Wazuh Agent,
+* vulnerable applications.
+
+Acts as the monitored endpoint.
+
+## Wazuh Server on DigitalOcean
+
+Receives logs and telemetry from the Windows endpoint for analysis and alerting.
+
+The communication flow becomes:
+
+```text
+Kali Linux
+     |
+     v
+Windows VM
+     |
+     v
+Wazuh Server (DigitalOcean)
+```
+
+This architecture closely resembles real-world enterprise monitoring and attack detection workflows.
+
+---
+
+# Conclusion
+
+While NAT networking provides simplicity and stability, bridged networking offers a significantly more realistic environment for cybersecurity labs and SOC simulations.
+
+By allowing the Windows virtual machine to behave as a real endpoint on the network:
+
+* attack simulations become more authentic,
+* telemetry becomes more meaningful,
+* and SIEM analysis more closely resembles real-world enterprise scenarios.
+
+For these reasons, bridged networking was selected as the preferred architecture for this SOC lab.
