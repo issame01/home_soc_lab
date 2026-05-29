@@ -1,0 +1,79 @@
+socadmin01@ubuntu-s-2vcpu-4gb-fra1:~$ curl -sO https://packages.wazuh.com/4.8/wazuh-install.sh
+socadmin01@ubuntu-s-2vcpu-4gb-fra1:~$ ls -la
+total 212
+drwxr-x--- 5 socadmin01 socadmin01   4096 May 29 07:19 .
+drwxr-xr-x 3 root       root         4096 May 25 04:38 ..
+-rw------- 1 socadmin01 socadmin01    192 May 25 04:58 .bash_history
+-rw-r--r-- 1 socadmin01 socadmin01    220 May 25 04:38 .bash_logout
+-rw-r--r-- 1 socadmin01 socadmin01   3771 May 25 04:38 .bashrc
+drwx------ 2 socadmin01 socadmin01   4096 May 25 04:51 .cache
+-rw-r--r-- 1 socadmin01 socadmin01      0 May 25 04:38 .cloud-locale-test.skip
+drwxrwxr-x 3 socadmin01 socadmin01   4096 May 25 04:42 .local
+-rw-r--r-- 1 socadmin01 socadmin01    807 May 25 04:38 .profile
+drwx------ 2 socadmin01 socadmin01   4096 May 25 04:50 .ssh
+-rw-r--r-- 1 socadmin01 socadmin01      0 May 25 04:44 .sudo_as_admin_successful
+-rw-r--r-- 1 root       root       177696 May 29 07:19 wazuh-install.sh
+socadmin01@ubuntu-s-2vcpu-4gb-fra1:~$ sudo chmod +x wazuh-install.sh
+socadmin01@ubuntu-s-2vcpu-4gb-fra1:~$ ls -la
+total 212
+drwxr-x--- 5 socadmin01 socadmin01   4096 May 29 07:19 .
+drwxr-xr-x 3 root       root         4096 May 25 04:38 ..
+-rw------- 1 socadmin01 socadmin01    192 May 25 04:58 .bash_history
+-rw-r--r-- 1 socadmin01 socadmin01    220 May 25 04:38 .bash_logout
+-rw-r--r-- 1 socadmin01 socadmin01   3771 May 25 04:38 .bashrc
+-rw-r--r-- 1 socadmin01 socadmin01    807 May 25 04:38 .profile
+drwx------ 2 socadmin01 socadmin01   4096 May 25 04:50 .ssh
+-rwxr-xr-x 1 root       root       177696 May 29 07:19 wazuh-install.sh
+socadmin01@ubuntu-s-2vcpu-4gb-fra1:~$ sudo ./wazuh-install.sh -a
+29/05/2026 07:20:54 INFO: Starting Wazuh installation assistant. Wazuh version: 4.8.2
+29/05/2026 07:20:54 INFO: Verbose logging redirected to /var/log/wazuh-install.log
+29/05/2026 07:20:56 INFO: Verifying that your system meets the recommended minimum hardware requirements.
+29/05/2026 07:21:15 INFO: Wazuh web interface port will be 443.
+29/05/2026 07:21:16 WARNING: The system has UFW enabled. Please ensure that traffic is allowed on these ports: 1515, 1514, 443.
+29/05/2026 07:21:31 INFO: Wazuh repository added.
+29/05/2026 07:21:31 INFO: --- Configuration files ---
+29/05/2026 07:21:31 INFO: Generating configuration files.
+29/05/2026 07:21:31 INFO: Generating the root certificate.
+29/05/2026 07:21:31 INFO: Generating Admin certificates.
+29/05/2026 07:21:32 INFO: Generating Wazuh indexer certificates.
+29/05/2026 07:21:33 INFO: Generating Filebeat certificates.
+29/05/2026 07:21:33 INFO: Generating Wazuh dashboard certificates.
+29/05/2026 07:21:34 INFO: Created wazuh-install-files.tar. It contains the Wazuh cluster key, certificates, and passwords necessary for installation.
+29/05/2026 07:21:34 INFO: --- Wazuh indexer ---
+29/05/2026 07:21:34 INFO: Starting Wazuh indexer installation.
+29/05/2026 07:23:06 INFO: Wazuh indexer installation finished.
+29/05/2026 07:23:07 INFO: Wazuh indexer post-install configuration finished.
+29/05/2026 07:23:07 INFO: Starting service wazuh-indexer.
+29/05/2026 07:23:27 INFO: wazuh-indexer service started.
+29/05/2026 07:23:27 INFO: Initializing Wazuh indexer cluster security settings.
+29/05/2026 07:23:39 INFO: Wazuh indexer cluster security configuration initialized.
+29/05/2026 07:23:39 INFO: Wazuh indexer cluster initialized.
+29/05/2026 07:23:39 INFO: --- Wazuh server ---
+29/05/2026 07:23:39 INFO: Starting the Wazuh manager installation.
+29/05/2026 07:25:02 INFO: Wazuh manager installation finished.
+29/05/2026 07:25:02 INFO: Wazuh manager vulnerability detection configuration finished.
+29/05/2026 07:25:02 INFO: Starting service wazuh-manager.
+29/05/2026 07:25:22 INFO: wazuh-manager service started.
+29/05/2026 07:25:22 INFO: Starting Filebeat installation.
+29/05/2026 07:25:35 INFO: Filebeat installation finished.
+29/05/2026 07:25:36 INFO: Filebeat post-install configuration finished.
+29/05/2026 07:25:36 INFO: Starting service filebeat.
+29/05/2026 07:25:38 INFO: filebeat service started.
+29/05/2026 07:25:38 INFO: --- Wazuh dashboard ---
+29/05/2026 07:25:38 INFO: Starting Wazuh dashboard installation.
+29/05/2026 07:26:46 INFO: Wazuh dashboard installation finished.
+29/05/2026 07:26:46 INFO: Wazuh dashboard post-install configuration finished.
+29/05/2026 07:26:46 INFO: Starting service wazuh-dashboard.
+29/05/2026 07:26:47 INFO: wazuh-dashboard service started.
+29/05/2026 07:26:50 INFO: Updating the internal users.
+29/05/2026 07:26:57 INFO: A backup of the internal users has been saved in the /etc/wazuh-indexer/internalusers-backup folder.
+29/05/2026 07:27:48 INFO: Initializing Wazuh dashboard web application.
+29/05/2026 07:27:49 INFO: Wazuh dashboard web application not yet initialized. Waiting...
+29/05/2026 07:28:05 INFO: Wazuh dashboard web application not yet initialized. Waiting...
+29/05/2026 07:28:20 INFO: Wazuh dashboard web application initialized.
+29/05/2026 07:28:20 INFO: --- Summary ---
+29/05/2026 07:28:20 INFO: You can access the web interface https://<wazuh-dashboard-ip>:443
+    User: admin
+    Password: rRRpIL.C5My0c8aTf?sWrWcnYJD8o8lB
+29/05/2026 07:28:20 INFO: Installation finished.
+socadmin01@ubuntu-s-2vcpu-4gb-fra1:~$ 
