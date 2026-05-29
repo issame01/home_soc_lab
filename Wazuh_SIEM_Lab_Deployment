@@ -1,0 +1,464 @@
+# Wazuh SIEM Lab Deployment on DigitalOcean (Ubuntu 22.04)
+
+## Overview
+
+This document explains how to deploy a complete single-node Wazuh SIEM platform on a DigitalOcean Ubuntu Droplet.
+
+The setup includes:
+
+* Wazuh Manager
+* Wazuh Indexer
+* Wazuh Dashboard
+* Filebeat
+* HTTPS Dashboard Access
+* UFW Firewall Configuration
+
+This lab is suitable for:
+
+* SOC learning
+* SIEM practice
+* Threat hunting labs
+* Home lab environments
+* Small production deployments
+
+---
+
+# Lab Architecture
+
+```text
+[Kali Linux / Endpoints]
+           |
+           v
++----------------------+
+|   Wazuh Dashboard    |
+|      Port 443        |
++----------------------+
+           |
+           v
++----------------------+
+|    Wazuh Manager     |
+|  Ports 1514 / 1515   |
++----------------------+
+           |
+           v
++----------------------+
+|    Wazuh Indexer     |
+|  Internal: 9200/9300 |
++----------------------+
+```
+
+---
+
+# Infrastructure
+
+## Cloud Provider
+
+DigitalOcean
+
+## Droplet Configuration
+
+| Resource | Value            |
+| -------- | ---------------- |
+| OS       | Ubuntu 22.04 LTS |
+| CPU      | 2 vCPU           |
+| RAM      | 4 GB             |
+| Disk     | 50 GB SSD        |
+| Access   | SSH              |
+
+---
+
+# Ports Used
+
+| Port  | Protocol | Purpose                             |
+| ----- | -------- | ----------------------------------- |
+| 22    | TCP      | SSH Remote Access                   |
+| 443   | TCP      | Wazuh Dashboard HTTPS               |
+| 1514  | TCP      | Agent Event Communication           |
+| 1515  | TCP      | Agent Enrollment                    |
+| 55000 | TCP      | Wazuh API                           |
+| 9200  | TCP      | OpenSearch API (localhost only)     |
+| 9300  | TCP      | OpenSearch Cluster (localhost only) |
+
+---
+
+# Initial Server Preparation
+
+## Update Ubuntu
+
+```bash
+sudo apt update && sudo apt upgrade -y
+```
+
+## Install Utilities
+
+```bash
+sudo apt install curl unzip wget apt-transport-https gnupg lsb-release -y
+```
+
+---
+
+# Wazuh Installation
+
+## Download Installer
+
+```bash
+curl -sO https://packages.wazuh.com/4.8/wazuh-install.sh
+```
+
+## Make Script Executable
+
+```bash
+chmod +x wazuh-install.sh
+```
+
+## Run All-in-One Installation
+
+```bash
+sudo ./wazuh-install.sh -a
+```
+
+This installs:
+
+* Wazuh Manager
+* Wazuh Indexer
+* Wazuh Dashboard
+* Filebeat
+
+---
+
+# Installation Result
+
+The installer successfully completed:
+
+* SSL/TLS certificate generation
+* Internal user configuration
+* Indexer initialization
+* Dashboard deployment
+* Service startup
+
+Generated login credentials:
+
+```text
+Username: admin
+Password: <generated_password>
+```
+
+---
+
+# Firewall Configuration
+
+## Enable Required Ports
+
+```bash
+sudo ufw allow 22/tcp
+sudo ufw allow 443/tcp
+sudo ufw allow 1514/tcp
+sudo ufw allow 1515/tcp
+sudo ufw reload
+```
+
+## Verify Rules
+
+```bash
+sudo ufw status
+```
+
+---
+
+# Why Port 22 Was Allowed
+
+Port 22 is used for SSH remote administration.
+
+Without allowing port 22:
+
+* SSH access would fail
+* Remote administration would be impossible
+* The administrator could lock themselves out of the server
+
+Although the Wazuh installer did not explicitly warn about port 22, it is required for Linux server management.
+
+---
+
+# Service Verification
+
+## Check Wazuh Manager
+
+```bash
+sudo systemctl status wazuh-manager
+```
+
+## Check Wazuh Indexer
+
+```bash
+sudo systemctl status wazuh-indexer
+```
+
+## Check Wazuh Dashboard
+
+```bash
+sudo systemctl status wazuh-dashboard
+```
+
+Expected result:
+
+```text
+active (running)
+```
+
+---
+
+# Listening Ports Verification
+
+## Verify Open Ports
+
+```bash
+sudo ss -tulpn
+```
+
+Important listening ports:
+
+```text
+0.0.0.0:443   -> Wazuh Dashboard
+0.0.0.0:1514  -> Agent Communication
+0.0.0.0:1515  -> Agent Enrollment
+0.0.0.0:22    -> SSH
+127.0.0.1:9200 -> OpenSearch API
+127.0.0.1:9300 -> OpenSearch Cluster
+```
+
+---
+
+# Dashboard Access
+
+The Wazuh Dashboard is web-based.
+
+It is NOT accessed from the Ubuntu terminal itself.
+
+Instead, it is accessed from a local machine browser.
+
+Example:
+
+```text
+https://SERVER_PUBLIC_IP
+```
+
+Example:
+
+```text
+https://207.xxx.xxx.xxx
+```
+
+---
+
+# Self-Signed SSL Certificate Warning
+
+The installation automatically generated self-signed certificates.
+
+As a result, browsers display:
+
+```text
+Connection is not private
+```
+
+This is expected behavior.
+
+Explanation:
+
+* HTTPS encryption is active
+* Browser trust validation is missing
+* Traffic remains encrypted
+
+For production environments:
+
+* Use a domain name
+* Replace certificates with Let's Encrypt or another trusted CA
+
+---
+
+# Dashboard Status After Installation
+
+After first login:
+
+* Dashboard accessible successfully
+* Wazuh services operational
+* Internal alerts generated automatically
+
+Observed dashboard values:
+
+| Severity | Count |
+| -------- | ----- |
+| Critical | 0     |
+| High     | 0     |
+| Medium   | 14    |
+| Low      | 56    |
+
+---
+
+# Why Alerts Exist Without Agents
+
+Even without external agents, Wazuh monitors:
+
+* System logs
+* Authentication events
+* Service startup events
+* SSH activity
+* Package management activity
+* Wazuh internal components
+
+Therefore, alerts are generated immediately after installation.
+
+This behavior confirms the SIEM pipeline is functioning correctly.
+
+---
+
+# Severity Levels
+
+| Rule Level | Meaning             |
+| ---------- | ------------------- |
+| 0–6        | Informational / Low |
+| 7–11       | Medium / Suspicious |
+| 12–14      | High                |
+| 15+        | Critical            |
+
+---
+
+# Threat Hunting
+
+Threat hunting can be performed from:
+
+```text
+Threat Hunting
+```
+
+inside the dashboard.
+
+This allows inspection of:
+
+* Alert details
+* Triggered rules
+* Event source
+* MITRE ATT&CK mappings
+* Security events
+
+---
+
+# Recommended Next Steps
+
+## Add Agents
+
+Recommended systems:
+
+* Kali Linux
+* Ubuntu Servers
+* Windows Machines
+* Docker Hosts
+
+Agents provide:
+
+* Endpoint telemetry
+* File integrity monitoring
+* Login monitoring
+* Malware detection
+* Vulnerability scanning
+
+---
+
+# Example Agent Installation (Ubuntu)
+
+## Download Agent
+
+```bash
+curl -sO https://packages.wazuh.com/4.x/apt/pool/main/w/wazuh-agent/wazuh-agent_4.8.2-1_amd64.deb
+```
+
+## Install Agent
+
+```bash
+sudo WAZUH_MANAGER='SERVER_IP' dpkg -i ./wazuh-agent_4.8.2-1_amd64.deb
+```
+
+## Start Agent
+
+```bash
+sudo systemctl enable wazuh-agent
+sudo systemctl start wazuh-agent
+```
+
+---
+
+# Recommended Hardening
+
+## Create Swap File
+
+Wazuh Indexer is memory-intensive.
+
+Recommended for 4GB systems:
+
+```bash
+sudo fallocate -l 4G /swapfile
+sudo chmod 600 /swapfile
+sudo mkswap /swapfile
+sudo swapon /swapfile
+echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+```
+
+---
+
+# Recommended Future Improvements
+
+## Production Enhancements
+
+* Use domain + trusted SSL certificates
+* Add reverse proxy (Nginx/Caddy)
+* Configure backups
+* Restrict SSH by IP
+* Disable password SSH authentication
+* Configure Cloudflare
+* Add monitoring and alert integrations
+
+---
+
+# Useful Commands
+
+## Restart Services
+
+```bash
+sudo systemctl restart wazuh-manager
+sudo systemctl restart wazuh-indexer
+sudo systemctl restart wazuh-dashboard
+```
+
+## Live Logs
+
+```bash
+sudo journalctl -u wazuh-manager -f
+```
+
+## Check Firewall
+
+```bash
+sudo ufw status
+```
+
+---
+
+# Conclusion
+
+The deployment successfully produced a working SIEM/SOC environment with:
+
+* HTTPS dashboard access
+* Centralized logging
+* Event correlation
+* Threat hunting capability
+* Alerting system
+* Vulnerability detection
+* MITRE ATT&CK integration
+
+The platform is now ready for:
+
+* Agent onboarding
+* Security monitoring
+* Detection engineering
+* Threat analysis
+* SOC experimentation
+* Security research
