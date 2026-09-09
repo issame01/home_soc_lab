@@ -1,11 +1,11 @@
-SOC LAB for mimicing the SOC analyst
+SOC LAB for mimicing the SOC-analyst everyday-job
 ============================================================================================================================================================================================================
 
 
 
 This architecture is actually very good for a practical SOC lab.
 
-We already separated:
+We already have separated VMs(See the PDF):
     <ul>
       <li>attacker</li>
       <li>victim</li>
@@ -24,12 +24,12 @@ The lab flow is basically:
             v
     Wazuh Server on DigitalOcean (SIEM/SOC)
 
-That’s a solid setup.
+That’s our solid setup.
 
 
 <h1>1. What To Configure Inside Windows VM</h1>
 
-Yes — you need BOTH:
+We need:
 
 vulnerable target(s)
 Wazuh agent
@@ -58,11 +58,11 @@ monitor processes
 detect malware indicators
 send logs to Wazuh server
 generate alerts
-Configure Agent To Connect To Your Wazuh Server
+Configure Agent To Connect To Our Wazuh Server
 
 Inside agent config:
 
-<address>YOUR_DROPLET_IP</address>
+<address>YOUR_SERVER_IP</address>
 
 Usually in:
 
@@ -72,14 +72,13 @@ Then restart the service.
 
 B. Install Sysmon (VERY IMPORTANT)
 
-This is one of the biggest improvements you can make.
+This is one of the biggest improvements
 
 Install:
 
 Sysmon
 
-Why:
-Windows default logs are weak.
+bECAUSE Windows default logs are weak.
 
 Sysmon gives:
 

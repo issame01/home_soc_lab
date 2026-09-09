@@ -74,6 +74,6 @@ socadmin01@ubuntu-s-2vcpu-4gb-fra1:~$ sudo ./wazuh-install.sh -a
 29/05/2026 07:28:20 INFO: --- Summary ---
 29/05/2026 07:28:20 INFO: You can access the web interface https://<wazuh-dashboard-ip>:443
     User: admin
-    Password: rRRpIL.C5My0c8aTf?sWrWcnYJD8o8lB
+    Password: rRRpIL.C5My0c8aTf?XXXXXXXXXXXXXX
 29/05/2026 07:28:20 INFO: Installation finished.
 socadmin01@ubuntu-s-2vcpu-4gb-fra1:~$ 
